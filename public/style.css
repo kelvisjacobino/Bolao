@@ -1,0 +1,238 @@
+/* =========================
+   PALETA / BASE
+========================= */
+:root {
+  --bg-body: #f5f7fa;
+  --bg-card: #ffffff;
+  --text-main: #333;
+  --text-light: #777;
+  --border-soft: #e5e8ec;
+  --primary: #2d7df4;
+  --primary-dark: #1f5fd3;
+  --green: #42b978;
+  --shadow: 0 6px 16px rgba(0,0,0,.06);
+}
+
+body {
+  font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+  background: var(--bg-body);
+  margin: 0;
+  padding: 16px;
+  color: var(--text-main);
+}
+
+h1, h2, h3 {
+  margin: 0 0 14px;
+  font-weight: 600;
+}
+
+/* =========================
+   SISTEMA DE TELAS
+========================= */
+section {
+  display: none;
+}
+
+section[style*="block"] {
+  display: block !important;
+}
+
+/* =========================
+   BOTÕES
+========================= */
+button {
+  cursor: pointer;
+  border: none;
+  border-radius: 10px;
+  padding: 8px 14px;
+}
+
+.btn-back {
+  background: transparent;
+  color: var(--text-light);
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: var(--primary-dark);
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid #ccc;
+}
+
+/* =========================
+   CARDS
+========================= */
+.card {
+  background: var(--bg-card);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  padding: 18px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border-soft);
+}
+
+/* =========================
+   FORMULÁRIOS
+========================= */
+form,
+.card form {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+input,
+select {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 14px;
+  width: 100%;
+}
+
+input:focus,
+select:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+/* =========================
+   LISTAS
+========================= */
+ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+#listaAmigos li,
+#listaCotas li {
+  background: #fff;
+  padding: 14px;
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  margin-bottom: 10px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+}
+
+.acoes {
+  display: flex;
+  gap: 6px;
+}
+
+.acoes button {
+  background: transparent;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+}
+
+/* =========================
+   COMPROVANTES
+========================= */
+.comprovantes-layout {
+  display: grid;
+  gap: 14px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.comprovantes-lista {
+  display: grid;
+  gap: 10px;
+}
+
+.comprovante-termica {
+  background: #fff;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-family: monospace;
+  box-shadow: var(--shadow);
+}
+
+.comprovante-termica .linha {
+  border-top: 1px dashed #000;
+  margin: 6px 0;
+}
+
+/* =========================
+   SORTEIOS
+========================= */
+.descricao {
+  font-size: 13px;
+  color: var(--text-light);
+}
+
+.resultado-card {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  padding: 12px 14px;
+}
+
+.resultado-vencedor {
+  border-left: 4px solid #2ecc71;
+  background: #e9f9ef;
+}
+
+.dezenas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.dezena {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 4px 8px;
+}
+
+.dezena.acertou {
+  background: #d9fdd3;
+  border-color: #27ae60;
+  font-weight: bold;
+}
+
+/* =========================
+   COTAS
+========================= */
+#tela-cotas .card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+#tela-cotas select,
+#tela-cotas input {
+  width: 100%;
+}
+
+/* =========================
+   IMPRESSÃO TÉRMICA
+========================= */
+@media print {
+  body * { visibility: hidden; }
+
+  #listaComprovantes,
+  #listaComprovantes * {
+    visibility: visible;
+  }
+
+  #listaComprovantes {
+    width: 58mm;
+  }
+
+  button, nav, header {
+    display: none !important;
+  }
+}

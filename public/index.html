@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Bolão do Maça</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<section id="home">
+  <h1>🎲 Bolão do Maça</h1>
+  <button onclick="abrirTela('tela-amigos')">Amigos</button>
+  <button onclick="abrirTela('tela-cotas')">Cotas</button>
+  <button onclick="abrirTela('tela-comprovantes')">Comprovantes</button>
+  <button onclick="abrirTela('tela-sorteios')">Sorteios</button>
+
+</section>
+
+<section id="tela-amigos" style="display:none">
+  <button onclick="abrirTela('home')">⬅</button>
+
+  <h2>👥 Amigos</h2>
+
+  <form id="formAmigo">
+    <input type="hidden" id="amigoId">
+
+    <input type="text" id="nome" placeholder="Nome" required>
+    <input type="text" id="apelido" placeholder="Apelido">
+    <input type="text" id="telefone" placeholder="Telefone">
+
+    <button type="submit">Salvar</button>
+    <button type="button" id="btnCancelarEdicao" style="display:none">
+      Cancelar
+    </button>
+  </form>
+
+  <ul id="listaAmigos"></ul>
+</section>
+
+
+
+<section id="tela-comprovantes" style="display:none">
+  <button onclick="abrirTela('home')" class="btn-back">⬅ Voltar</button>
+
+  <h2>📄 Comprovantes</h2>
+
+  <div class="comprovantes-layout">
+
+    <!-- FILTRO -->
+    <div class="comprovantes-filtro card">
+      <div class="filter-header">
+        <h3>Selecionar Amigo</h3>
+      </div>
+
+      <div class="filter-row">
+        <select id="comprovanteAmigo"></select>
+
+        <button id="btnBuscarComprovantes" class="btn-primary">
+          Buscar
+        </button>
+
+        <button onclick="imprimirTermica()" class="btn-outline">
+          🖨️ Imprimir
+        </button>
+      </div>
+    </div>
+
+    <!-- LISTA -->
+    <div class="comprovantes-lista" id="listaComprovantes">
+      <!-- os cards entram aqui -->
+    </div>
+
+  </div>
+</section>
+
+<section id="tela-sorteios" style="display:none">
+  <button onclick="abrirTela('home')" class="btn-back">⬅ Voltar</button>
+
+  <h2>🎰 Sorteios</h2>
+
+  <div class="comprovantes-layout">
+
+    <!-- FORM -->
+    <div class="card">
+      <h3>Registrar sorteio</h3>
+
+      <p class="descricao">
+        Digite as 6 dezenas separadas por vírgula.
+      </p>
+
+     <input
+  type="text"
+  id="inputSorteio"
+  placeholder="Ex: 01,05,10,22,37,44"
+/>
+
+<div id="erroSorteio" style="color:#d63031; font-size:12px;"></div>
+
+
+      <button id="btnRegistrarSorteio" class="btn-primary">
+        Registrar
+      </button>
+    </div>
+
+    <!-- RESULTADOS -->
+    <div class="comprovantes-lista" id="listaResultados">
+      <!-- resultados aparecem aqui -->
+    </div>
+
+  </div>
+</section>
+<section id="tela-cotas" style="display:none">
+
+  <button onclick="abrirTela('home')">⬅</button>
+
+  <h2>Cotas (Ciclo Atual)</h2>
+
+  <div class="card">
+    <h3>Adicionar amigo ao ciclo</h3>
+
+    <select id="cotaAmigo"></select>
+
+    <input type="text" id="cotaNumeros" placeholder="Dezenas: 01,05,10,22,37,44">
+
+    <button id="btnAdicionarCota" class="btn-primary">
+      Adicionar
+    </button>
+  </div>
+
+  <ul id="listaCotas"></ul>
+
+</section>
+
+
+
+<script src="script.js"></script>
+</body>
+</html>

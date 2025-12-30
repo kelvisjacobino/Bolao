@@ -6,6 +6,8 @@ const express = require("express");
 const cors = require("cors");
 const path = require("path");
 const sorteios = require("./queries/sorteios");
+const db = require("./db");
+
 const { contarAcertos } = require("./services/resultado");
 
 const ciclos = require("./queries/ciclos");
@@ -133,36 +135,95 @@ app.get("/api/sorteios/:ciclo_id", async (req, res) => {
 
 // COTAS
 // =======================
-app.get("/api/cotas", async (req, res) => {
-  const ciclo = await ciclos.cicloAtivo();
-  if (!ciclo) return res.json([]);
-  const lista = await cotas.listarCotasPorCiclo(ciclo.id);
-  res.json(lista);
-});
+// ==========================
+// LISTAR COTAS POR CICLO
+// ==========================
+app.get("/api/cotas", (req, res) => {
+    const { ciclo_id } = req.query;
 
-app.post("/api/cotas", async (req, res) => {
-  const { amigo_id, cota, numeros } = req.body;
-  const ciclo = await ciclos.cicloAtivo();
+    if (!ciclo_id) {
+        return res.json({ sucesso: false, erro: "ciclo_id obrigatório" });
+    }
 
-  // verifica se já existe no ciclo
-  const jaExiste = await cotas.buscarPorAmigoECiclo(amigo_id, ciclo.id);
+    const sql = `
+        SELECT
+            c.id,
+            c.ciclo_id,
+            c.dezenas,
+            a.id AS amigo_id,
+            a.nome,
+            a.apelido
+        FROM cotas c
+        JOIN amigos a ON a.id = c.amigo_id
+        WHERE c.ciclo_id = ?
+        ORDER BY a.nome
+    `;
 
-  if (jaExiste) {
-    return res.json({
-      erro: "Este amigo já está neste ciclo."
+    db.all(sql, [ciclo_id], (err, rows) => {
+        if (err) {
+            console.error(err);
+            return res.json({ sucesso: false, erro: "Erro ao buscar cotas" });
+        }
+
+        // Agrupa por amigo
+        const resultado = {};
+        rows.forEach(r => {
+            if (!resultado[r.amigo_id]) {
+                resultado[r.amigo_id] = {
+                    amigo_id: r.amigo_id,
+                    nome: r.nome,
+                    apelido: r.apelido,
+                    cotas: []
+                };
+            }
+
+            resultado[r.amigo_id].cotas.push({
+                id: r.id,
+                dezenas: r.dezenas.split(",")
+            });
+        });
+
+        res.json({
+            sucesso: true,
+            dados: Object.values(resultado)
+        });
     });
-  }
-
-  const id = await cotas.inserirCota(amigo_id, ciclo.id, cota, numeros);
-
-  res.json({ sucesso: true, id });
 });
+
+
+// ==========================
+// CRIAR COTA
+// ==========================
+app.post("/api/cotas", (req, res) => {
+    const { amigo_id, ciclo_id, dezenas } = req.body;
+
+    if (!amigo_id || !ciclo_id || !Array.isArray(dezenas)) {
+        return res.json({ sucesso: false, erro: "Dados inválidos" });
+    }
+
+    const dezenasStr = dezenas.join(",");
+
+    db.run(
+        `INSERT INTO cotas (amigo_id, ciclo_id, dezenas)
+         VALUES (?, ?, ?)`,
+        [amigo_id, ciclo_id, dezenasStr],
+        function (err) {
+            if (err) {
+                console.error(err);
+                return res.json({ sucesso: false, erro: "Erro ao salvar" });
+            }
+
+            res.json({ sucesso: true, id: this.lastID });
+        }
+    );
+});
+
 
 // =======================
 // COMPROVANTES
 // =======================
 app.get("/api/comprovantes/:amigo_id", async (req, res) => {
-  const db = require("./db");
+  
   db.all(
     `
     SELECT h.*, a.nome, a.apelido

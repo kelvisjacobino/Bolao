@@ -1,27 +1,32 @@
 console.log("✅ script.js carregado");
+let cicloAtualId = 1;
+// =======================
+// VARIÁVEIS GLOBAIS
+// =======================
+let dezenasSelecionadas = [];
+let qtdCotasSelecionadas = 0;
+
+
 
 document.addEventListener("DOMContentLoaded", () => {
 
     // =========================
     // NAVEGAÇÃO
     // =========================
-    window.abrirTela = function (id) {
-        document.querySelectorAll("section").forEach(sec => {
-            sec.style.display = "none";
-        });
+   window.abrirTela = function (id) {
+    document.querySelectorAll("section").forEach(sec => {
+        sec.style.display = "none";
+    });
 
-        const tela = document.getElementById(id);
-        if (tela) tela.style.display = "block";
+    const tela = document.getElementById(id);
+    if (tela) tela.style.display = "block";
 
-        // Chamando as funções que agora estão no escopo correto
-        if (id === "tela-amigos") carregarAmigos();
-        if (id === "tela-cotas") {
-  carregarCotas();
-  carregarAmigosParaCotas();
-}
+    if (id === "telaCotas") {
+        carregarAmigosParaCotas();
+        carregarCotas(); // se já existir
+    }
+};
 
-        if (id === "tela-comprovantes") carregarAmigosComprovantes();
-    };
 
    
 
@@ -111,6 +116,65 @@ if (btn) {
     // =========================
     // AMIGOS
     // =========================
+
+window.salvarCota = async function () {
+    const amigoId = document.getElementById("amigoSelect").value;
+    const qtd = parseInt(document.getElementById("qtdCotas").value);
+    const dezenas = [...dezenasSelecionadas].sort((a, b) => a - b);
+
+    if (!amigoId) {
+        alert("Selecione o amigo");
+        return;
+    }
+
+    if (!qtd || qtd < 6 || qtd > 20) {
+        alert("Informe a quantidade de cotas (6 a 20)");
+        return;
+    }
+
+    if (dezenas.length !== qtd) {
+        alert(`Você deve selecionar exatamente ${qtd} dezenas`);
+        return;
+    }
+
+    try {
+        const res = await fetch("/api/cotas", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                amigo_id: amigoId,
+                ciclo_id: cicloAtualId,
+                qtd_cotas: qtd,
+                dezenas
+            })
+        });
+
+        const json = await res.json();
+
+        if (!json.sucesso) {
+            alert(json.erro || "Erro ao salvar cota");
+            return;
+        }
+
+        alert("✅ Cota cadastrada com sucesso");
+
+        dezenasSelecionadas = [];
+        qtdCotasSelecionadas = 0;
+
+        document.getElementById("qtdCotas").value = "";
+        document.getElementById("amigoSelect").value = "";
+
+        atualizarPreviewDezenas();
+        atualizarContador();
+        carregarCotas();
+
+    } catch (e) {
+        console.error("Erro ao salvar cota", e);
+        alert("Erro inesperado ao salvar cota");
+    }
+};
+
+
     const formAmigo = document.getElementById("formAmigo");
     const btnCancelar = document.getElementById("btnCancelarEdicao");
 
@@ -179,6 +243,32 @@ if (btn) {
             }
         });
     }
+window.carregarAmigosSelect = async function() {
+    const select = document.getElementById("amigoSelect");
+    if (!select) return;
+
+    select.innerHTML = "<option>Carregando...</option>";
+
+    try {
+        const res = await fetch("/api/amigos");
+        const amigos = await res.json();
+
+        select.innerHTML = '<option value="">Selecione o amigo</option>';
+
+        amigos
+          .filter(a => a.ativo)
+          .forEach(a => {
+              const opt = document.createElement("option");
+              opt.value = a.id;
+              opt.textContent = `[${a.id}] ${a.nome}${a.apelido ? " ("+a.apelido+")" : ""}`;
+              select.appendChild(opt);
+          });
+
+    } catch (e) {
+        console.error("Erro ao carregar amigos no select", e);
+        select.innerHTML = "<option>Erro ao carregar</option>";
+    }
+};
 
     window.editarAmigo = async function (id) {
         const res = await fetch(`/api/amigos/${id}`);
@@ -217,97 +307,11 @@ if (btnRegistrar) {
   btnRegistrar.addEventListener("click", registrarSorteio);
 }
 
-async function registrarSorteio() {
-   if (!validarEntrada()) {
-    alert("Corrija as dezenas antes de registrar.");
+window.registrarSorteio = function () {
+    alert("⚠️ O registro manual de sorteio está desativado.");
     return;
-  }
-  const numeros = document.getElementById("inputSorteio").value.trim();
-  const lista = document.getElementById("listaResultados");
+};
 
-  if (!numeros) {
-    alert("Digite os números do sorteio");
-    return;
-  }
-
-  lista.innerHTML = "<p>Processando...</p>";
-
-  try {
-    const res = await fetch("/api/sorteios", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ numeros })
-    });
-
-    const json = await res.json();
-    lista.innerHTML = "";
-
-    if (json.erro) {
-      lista.innerHTML = `<p>${json.erro}</p>`;
-      return;
-    }
-
-    if (json.ganhou) {
-      const div = document.createElement("div");
-      div.className = "resultado-card resultado-vencedor";
-
-      div.innerHTML = `
-        <div class="resultado-header">
-          🎉 Vencedor encontrado!
-        </div>
-
-        <p><strong>Amigo:</strong> ${json.vencedor.nome || ""}</p>
-        <p><strong>Números:</strong> ${json.vencedor.numeros}</p>
-        <p><strong>Ciclo encerrado.</strong></p>
-      `;
-
-      lista.appendChild(div);
-    } else {
-      const header = document.createElement("div");
-header.className = "resultado-card";
-
-header.innerHTML = `
-  <div class="resultado-header">
-    Ninguém acertou as 6 dezenas.
-  </div>
-  <p class="resultado-acertos">Veja quem chegou perto 👇</p>
-`;
-
-lista.appendChild(header);
-
-// agora listar amigos
-json.resultados.forEach(r => {
-  const div = document.createElement("div");
-  div.className = "resultado-amigo";
-
-  const dezenas = r.numeros.split(",");
-  const sorteio = json.resultados[0].sorteio.split(",");
-
-  div.innerHTML = `
-    <div class="resultado-nome">
-      [${r.amigo_id}] ${r.nome} ${r.apelido ? "(" + r.apelido + ")" : ""}
-      — <strong>${r.acertos} acertos</strong>
-    </div>
-
-    <div class="dezenas">
-      ${dezenas.map(n => `
-        <span class="dezena ${sorteio.includes(n) ? "acertou" : ""}">
-          ${n}
-        </span>
-      `).join("")}
-    </div>
-  `;
-
-  lista.appendChild(div);
-});
-
-    }
-
-  } catch (e) {
-    console.error(e);
-    lista.innerHTML = "<p>Erro ao registrar sorteio</p>";
-  }
-}
 const inputSorteio = document.getElementById("inputSorteio");
 const erroSorteio = document.getElementById("erroSorteio");
 
@@ -386,71 +390,59 @@ function validarEntrada() {
     // =========================
     // COTAS
     // =========================
-    window.carregarCotas = async function() {
-        const ul = document.getElementById("listaCotas");
-        if (!ul) return;
-        ul.innerHTML = "<li>Carregando...</li>";
-        const res = await fetch("/api/cotas");
-        const cotas = await res.json();
-        ul.innerHTML = "";
+    window.carregarCotas = async function () {
+    const container = document.getElementById("listaCotas");
+    if (!container) return;
 
-        cotas.forEach(c => {
-            const li = document.createElement("li");
-            li.className = "cota-item";
-            li.innerHTML = `
-                <div class="cota-info">
-                  <strong>[${c.amigo_id}] ${c.nome}${c.apelido ? ` (${c.apelido})` : ""}</strong>
-                </div>
-                <div class="cota-detalhes">
-                  Cota: <strong>${c.cota}</strong> dezenas<br>
-                  Números: ${c.numeros.split(",").join(" ")}
-                </div>
-                <div class="acoes">
-                  <button class="btn-editar" onclick="editarCota(${c.id})">✏️</button>
-                </div>`;
-            ul.appendChild(li);
+    if (!window.cicloAtualId) {
+        console.warn("⚠️ cicloAtualId indefinido, usando 1");
+        window.cicloAtualId = 1;
+    }
+
+    container.innerHTML = "Carregando...";
+
+    try {
+        const res = await fetch(`/api/cotas?ciclo_id=${window.cicloAtualId}`);
+        const json = await res.json();
+
+        if (!json.sucesso || !json.dados.length) {
+            container.innerHTML = "<p>Nenhuma cota cadastrada</p>";
+            return;
+        }
+
+        let html = "";
+
+        json.dados.forEach(amigo => {
+            html += `
+              <div class="bloco-amigo">
+                <strong>${amigo.nome}${amigo.apelido ? " ("+amigo.apelido+")" : ""}</strong>
+                <ul>
+            `;
+
+            amigo.cotas.forEach((cota, idx) => {
+                html += `
+                  <li>
+                    Cota ${idx + 1}:
+                    ${cota.dezenas.map(d => `<span class="num">${d}</span>`).join(" ")}
+                  </li>
+                `;
+            });
+
+            html += "</ul></div>";
         });
-    };
+
+        container.innerHTML = html;
+
+    } catch (e) {
+        console.error("Erro ao carregar cotas", e);
+        container.innerHTML = "Erro ao carregar cotas";
+    }
+};
+
 const inputCotas = document.getElementById("cotaNumeros");
 const erroCotas = document.createElement("div");
 erroCotas.style.color = "#d63031";
 erroCotas.style.fontSize = "12px";
-
-inputCotas.after(erroCotas);
-
-inputCotas.addEventListener("input", () => {
-  let txt = inputCotas.value;
-
-  // troca espaço por vírgula
-  txt = txt.replace(/\s+/g, ",");
-
-  // permite digitar ainda
-  const partes = txt.split(",").filter(x => x !== "");
-
-  let set = new Set();
-  let erro = "";
-
-  for (let p of partes) {
-
-    if (!/^\d+$/.test(p)) continue; // deixa digitar
-
-    let n = parseInt(p);
-
-    if (n < 1 || n > 60) {
-      erro = "As dezenas devem ser entre 01 e 60";
-      break;
-    }
-
-    if (set.has(n)) {
-      erro = "Não pode repetir dezenas";
-      break;
-    }
-
-    set.add(n);
-  }
-
-  erroCotas.textContent = erro;
-});
 
 
     // Criada para evitar erro de "function not found"
@@ -458,33 +450,41 @@ inputCotas.addEventListener("input", () => {
         console.log("Editar cota:", id);
         // Implemente a lógica de edição aqui
     };
-async function carregarAmigosParaCotas() {
-  console.log("🔄 carregando amigos para cotas...");
+window.carregarAmigosParaCotas = async function () {
+    console.log("🔄 carregando amigos para cotas...");
 
-  const sel = document.getElementById("cotaAmigo");
-  console.log("🎯 select encontrado?", sel);
+    const select = document.getElementById("amigoSelect");
+    if (!select) {
+        console.warn("❌ select amigoSelect não encontrado");
+        return;
+    }
 
-  if (!sel) return;
+    select.innerHTML = `<option value="">Selecione o amigo</option>`;
 
-  const res = await fetch("/api/amigos");
-  const amigos = await res.json();
+    try {
+        const res = await fetch("/api/amigos");
+        const amigos = await res.json();
 
-  console.log("👀 amigos recebidos:", amigos);
+        console.log("👀 amigos recebidos:", amigos);
 
-  sel.innerHTML = '<option value="">Selecione</option>';
+        if (!Array.isArray(amigos)) return;
 
-  amigos.forEach(a => {
-    const opt = document.createElement("option");
-    opt.value = a.id;
-    opt.textContent = `[${a.id}] ${a.nome} ${a.apelido ? "(" + a.apelido + ")" : ""}`;
+        amigos
+          .filter(a => a.ativo) // só ativos
+          .forEach(a => {
+              const opt = document.createElement("option");
+              opt.value = a.id;
+              opt.textContent =
+                `[${a.id}] ${a.nome}${a.apelido ? " (" + a.apelido + ")" : ""}`;
+              select.appendChild(opt);
+          });
 
-    console.log("➕ adicionando opção:", opt.textContent);
+        console.log("📌 total de opções no select:", select.options.length);
 
-    sel.appendChild(opt);
-  });
-
-  console.log("📌 total de opções no select:", sel.options.length);
-}
+    } catch (e) {
+        console.error("Erro ao carregar amigos para cotas", e);
+    }
+};
 
 
 
@@ -525,6 +525,152 @@ const btnAdicionarCota = document.getElementById("btnAdicionarCota");
 
 if (btnAdicionarCota) {
   btnAdicionarCota.addEventListener("click", adicionarCota);
+
+}function cotaJaExiste(amigoId, cicloId, dezenas) {
+  const normalizada = [...dezenas].sort().join(",");
+
+  return data.some(c =>
+    c.amigo_id === amigoId &&
+    c.ciclo_id === cicloId &&
+    [...c.dezenas].sort().join(",") === normalizada
+  );
+}
+let dezenasSelecionadas = [];
+function salvarCota(){
+  const amigoId = Number(document.getElementById("amigoSelect").value);
+  const cicloId = cicloAtualId; // você já tem ou vai ter isso
+  const dezenas = dezenasSelecionadas;
+
+  if(dezenas.length < 6){
+    alert("Selecione no mínimo 6 dezenas");
+    return;
+  }
+
+  if(cotaJaExiste(amigoId, cicloId, dezenas)){
+    alert("❌ Essa cota já existe para esse amigo neste ciclo.\nAltere ao menos uma dezena.");
+    return;
+  }
+
+  // ✅ salvar
+  data.push({
+    amigo_id: amigoId,
+    ciclo_id: cicloId,
+    dezenas: [...dezenas],
+    acertos: [],
+    ganhou: false
+  });
+
+  saveAll();
+  buildAll();
+
+  alert("✅ Cota cadastrada com sucesso!");
+}
+
+
+// =======================
+// MODAL DE DEZENAS
+// =======================
+
+
+
+window.abrirModal = function () {
+    const modal = document.getElementById("modalDezenas");
+    if (!modal) return;
+
+    modal.classList.remove("hidden");
+    renderizarGridDezenas();
+};
+
+window.fecharModal = function () {
+    const modal = document.getElementById("modalDezenas");
+    if (!modal) return;
+
+    modal.classList.add("hidden");
+};
+
+window.confirmarDezenas = function () {
+    atualizarPreviewDezenas();
+    fecharModal();
+};
+
+
+function confirmarDezenas(){
+  if(dezenasSelecionadas.length < 6){
+    alert("Selecione no mínimo 6 dezenas");
+    return;
+  }
+
+  dezenasSelecionadas.sort();
+  document.getElementById("previewDezenas").innerHTML =
+    dezenasSelecionadas.map(d => `<span class="num">${d}</span>`).join(" ");
+
+  fecharModal();
+}
+function atualizarContador() {
+    const el = document.getElementById("contadorDezenas");
+    if (!el) return;
+
+    el.textContent =
+      `${dezenasSelecionadas.length} / ${qtdCotasSelecionadas} dezenas selecionadas`;
+}
+function confirmarDezenas() {
+    atualizarPreviewDezenas();
+    atualizarContador();
+    fecharModal();
+}
+
+function renderizarGridDezenas() {
+    const grid = document.getElementById("gridDezenas");
+    if (!grid) return;
+
+    grid.innerHTML = "";
+
+    for (let i = 1; i <= 60; i++) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.textContent = i.toString().padStart(2, "0");
+        btn.className = "dezena";
+
+        if (dezenasSelecionadas.includes(i)) {
+            btn.classList.add("ativa");
+        }
+
+       btn.onclick = () => {
+
+    if (dezenasSelecionadas.includes(i)) {
+        dezenasSelecionadas = dezenasSelecionadas.filter(n => n !== i);
+        btn.classList.remove("ativa");
+        atualizarContador();
+        return;
+    }
+
+    if (dezenasSelecionadas.length >= qtdCotasSelecionadas) {
+        alert(`Você só pode selecionar ${qtdCotasSelecionadas} dezenas`);
+        return;
+    }
+
+    dezenasSelecionadas.push(i);
+    btn.classList.add("ativa");
+    atualizarContador();
+};
+
+
+        grid.appendChild(btn);
+    }
+}
+function atualizarPreviewDezenas() {
+    const preview = document.getElementById("previewDezenas");
+    if (!preview) return;
+
+    if (dezenasSelecionadas.length === 0) {
+        preview.textContent = "Nenhuma dezena selecionada";
+        return;
+    }
+
+    const ordenadas = [...dezenasSelecionadas].sort((a, b) => a - b);
+    preview.textContent = ordenadas
+        .map(n => n.toString().padStart(2, "0"))
+        .join(", ");
 }
 
     // =========================

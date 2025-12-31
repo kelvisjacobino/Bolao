@@ -34,13 +34,28 @@ function listarCotasPorCiclo(ciclo_id) {
       FROM amigos_cotas c
       JOIN amigos a ON a.id = c.amigo_id
       WHERE c.ciclo_id = ?
+      ORDER BY a.nome
     `;
 
-    db.all(sql, [ciclo_id], (err, rows) =>
-      err ? reject(err) : resolve(rows)
-    );
+    db.all(sql, [ciclo_id], (err, rows) => {
+      if (err) return reject(err);
+
+      const lista = rows.map(r => ({
+        id: r.id,
+        amigo_id: r.amigo_id,
+        nome: r.nome,
+        apelido: r.apelido,
+        numeros: r.numeros
+          .toString()
+          .split(",")
+          .map(n => Number(n))
+      }));
+
+      resolve(lista);
+    });
   });
 }
+
 
 /* =======================
    BUSCAR COTA POR ID
